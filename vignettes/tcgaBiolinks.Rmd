@@ -1,0 +1,1873 @@
+---
+title: "Working with TCGAbiolinks package"
+author: " Antonio Colaprico, Tiago Chedraoui Silva, Luciano Garofano, 
+Catharina Olsen, Davide Garolini, Claudia Cava, Isabella Castiglioni,
+Thais Sabedot, Tathiane Malta, Stefano Pagnotta, Michele Ceccarelli,
+Gianluca Bontempi, Houtan Noushmehr"
+date: "`r Sys.Date()`"
+output: 
+    BiocStyle::html_document:
+        toc: true
+        number_sections: false
+        toc_depth: 2
+        highlight: haddock
+
+
+references:
+- id: ref1
+  title: Orchestrating high-throughput genomic analysis with Bioconductor
+  author: 
+  - family: Huber, Wolfgang and Carey, Vincent J and Gentleman, Robert and Anders, Simon and Carlson, Marc and Carvalho, Benilton S and Bravo, Hector Corrada and Davis, Sean and Gatto, Laurent and Girke, Thomas and others
+    given:
+  journal: Nature methods
+  volume: 12
+  number: 2
+  pages: 115-121
+  issued:
+    year: 2015
+
+- id: ref2
+  title: GC-content normalization for RNA-Seq data
+  author: 
+  - family: Risso, Davide and Schwartz, Katja and Sherlock, Gavin and Dudoit, Sandrine
+    given:
+  journal: BMC bioinformatics
+  volume: 12
+  number: 1
+  pages: 480
+  issued:
+    year: 2011 
+    
+- id: ref3
+  title: Evaluation of statistical methods for normalization and differential expression in mRNA-Seq experiments
+  author: 
+  - family: Bullard, James H and Purdom, Elizabeth and Hansen, Kasper D and Dudoit, Sandrine
+    given:
+  journal: BMC bioinformatics
+  volume: 11
+  number: 1
+  pages: 94
+  issued:
+    year: 2010 
+
+- id: ref4
+  title: Inferring regulatory element landscapes and transcription factor networks from cancer methylomes
+  author: 
+  - family: Yao, L., Shen, H., Laird, P. W., Farnham, P. J., & Berman, B. P. 
+    given:
+  journal: Genome biology
+  volume: 16
+  number: 1
+  pages: 105
+  issued:
+    year: 2015 
+
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(dpi = 300)
+knitr::opts_chunk$set(cache=FALSE)
+```
+
+```{r, echo = FALSE,hide=TRUE, message=FALSE,warning=FALSE}
+devtools::load_all(".")
+```
+
+## Introduction 
+
+Motivation: The Cancer Genome Atlas (TCGA) provides us with an enormous collection of data sets, not only spanning a large number of cancers but also a large number of experimental platforms. Even though the data can be accessed and downloaded from the database, the possibility to analyse these downloaded data directly in one single R package has not yet been available. 
+
+ TCGAbiolinks consists of three parts or levels. Firstly, we provide different options to query and download from TCGA relevant data from all currently platforms and their subsequent pre-processing for commonly used bio-informatics (tools) packages in Bioconductor or CRAN. Secondly, the package allows to integrate different data types and it can be used for different types of analyses dealing with all platforms such as diff.expression, network inference or survival analysis, etc, and then it allows to visualize the obtained results. Thirdly we added a social level where a researcher can found a similar intereset in a bioinformatic community, and allows both to find a validation of results in literature in pubmed and also to retrieve questions and answers from site such as support.bioconductor.org, biostars.org, stackoverflow,etc.
+
+This document describes how to search, download and analyze TCGA data using the
+`TCGAbiolinks` package.
+
+## Installation
+
+For the moment the package is in the devel branch of bioconductor repository.
+To install use the code below.
+
+```{r, eval = FALSE}
+source("http://bioconductor.org/biocLite.R")
+useDevel()
+biocLite("TCGAbiolinks")
+```
+
+# `TCGAquery`: Searching TCGA open-access data  
+
+## `TCGAquery`: Searching TCGA open-access data for download 
+
+ You can easily search TCGA samples using the `TCGAquery` function.
+ Using a summary of filters as used in the TCGA portal, the function works
+ with the following 
+ parameters:
+
+* **tumor** Tumor or list of tumors. The list of tumor is shown in the examples. 
+* **platform** Platform or list of tumors. The list of platforms is shown in the examples.
+* **samples** List of TCGA barcodes
+* **level**  Options: 1,2,3,"mage-tab"
+* **center**
+* **version** List of Platform/Tumor/Version to be changed
+
+
+The next subsections will detail each of the search parameters.
+Below, we show some search examples:
+```{r, eval = FALSE}
+query <- TCGAquery(tumor = c("LGG","GBM"), level = 3,
+                   platform = c("HumanMethylation450","HumanMethylation27"),
+                   samples = c("TCGA-19-4065","TCGA-E1-5322-01A-01D-1467-05"), 
+                   version = list(c("HumanMethylation450","LGG",1),
+                                  c("HumanMethylation450","GBM",5)))
+```
+
+### `TCGAquery`: Searching by tumor
+You can filter the search by tumor using the tumor parameter.
+
+```{r, eval = TRUE}
+query <- TCGAquery(tumor = "gbm")
+```
+
+The list of tumors is show below:
+```{r, eval = TRUE, echo = FALSE}
+knitr::kable(disease.table, digits = 2,
+             caption = "List of tumors",row.names = FALSE)
+```
+
+### `TCGAquery`: Searching by level
+You can filter the search by level	"1", "2", "3" or "mage-tab"
+```{r, eval = TRUE}
+query <- TCGAquery(tumor = "gbm", level = 3)
+query <- TCGAquery(tumor = "gbm", level = 2)
+query <- TCGAquery(tumor = "gbm", level = 1)
+query <- TCGAquery(tumor = "gbm", level = "mage-tab")
+```
+
+### `TCGAquery`: Searching by platform
+You can filter the search by platform using the platform parameter.
+
+```{r, eval = TRUE}
+query <- TCGAquery(tumor = "gbm", platform = "IlluminaHiSeq_RNASeqV2")
+```
+
+The list of platforms is show below:
+```{r, eval = TRUE, echo = FALSE}
+knitr::kable(platform.table[,2:4], digits = 2,
+             caption = "List of tumors",row.names = FALSE)
+```
+
+### `TCGAquery`: Searching by center
+You can filter the search by center using the center parameter.
+
+```{r, eval = TRUE}
+query <- TCGAquery(tumor = "gbm", center = "mskcc.org")
+```
+
+If you don't remember the center or if you have incorrectly typed it. 
+It will provide you with all the center names in TCGA. 
+
+The list of centers is show below:
+```{r, eval = TRUE, echo = FALSE}
+knitr::kable(center.table, digits = 2,
+             caption = "List of tumors",row.names = FALSE)
+```
+
+### `TCGAquery`: Searching by samples
+You can filter the search by samples using the samples parameter.
+You can give a list of barcodes or only one barcode. These barcode can be partial barcodes.
+
+```{r, eval = TRUE}
+# You can define a list of samples to query and download providing relative TCGA barcodes.
+listSamples <- c("TCGA-E9-A1NG-11A-52R-A14M-07","TCGA-BH-A1FC-11A-32R-A13Q-07",
+                "TCGA-A7-A13G-11A-51R-A13Q-07","TCGA-BH-A0DK-11A-13R-A089-07",
+                "TCGA-E9-A1RH-11A-34R-A169-07","TCGA-BH-A0AU-01A-11R-A12P-07",
+                "TCGA-C8-A1HJ-01A-11R-A13Q-07","TCGA-A7-A13D-01A-13R-A12P-07",
+                "TCGA-A2-A0CV-01A-31R-A115-07","TCGA-AQ-A0Y5-01A-11R-A14M-07")
+
+# Query all available platforms with a list of barcode 
+query <- TCGAquery(samples = listSamples)
+
+# Query with a partial barcode 
+query <- TCGAquery(samples = "TCGA-61-1743-01A")
+```
+
+## `TCGAquery_Version`: Retrieve versions information of the data in TCGA 
+
+In case the user want to have an overview of the size and number of samples and
+date of old versions, you can use the `TCGAquery_Version` function.
+
+The parameters of this function are:
+
+* tumor 
+* platform 
+
+
+For example, the code below queries the version history for the 
+IlluminaHiSeq_RNASeqV2 platform .
+
+```{r, eval = FALSE}
+library(TCGAbiolinks)
+
+BRCA_RNASeqV2_version <- TCGAquery_Version(tumor = "brca", 
+                                           platform = "illuminahiseq_rnaseqv2")
+
+```
+
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+library(TCGAbiolinks)
+knitr::opts_chunk$set(comment = "", warning = FALSE, message = FALSE, echo = TRUE, tidy = FALSE, size="small")
+knitr::kable(BRCA_RNASeqV2_version[,1:4], digits = 2, 
+             caption = "Table with date, version and number of samples of BRCA IlluminaHiSeq_RNASeqV2", 
+             row.names = FALSE)
+```
+
+### `TCGAquery`: Searching old versions
+
+The results from TCGAquery are always the last one from the TCGA data portal.
+As we have a preprocessed table you should always update `TCGAbiolinks` package.
+We intent to update the database constantly.
+
+In case you want an old version of the files we have the version parameter 
+that should be a list of triple values(platform,tumor,version).
+For example the code below will get the LGG and GBM tumor for platform 
+HumanMethylation450 but for the LGG/HumanMethylation450, we want the version 5
+of the files instead of the latest. This could take some seconds.
+
+```{r, eval = FALSE}
+query <- TCGAquery(tumor = c("LGG","GBM"), platform = c("HumanMethylation450"), level = 3, 
+                   version = list(c("HumanMethylation450","LGG",1)))
+```
+
+## `TCGAquery_clinic` `&` `TCGAquery_clinicFilt`: Working with clinical data.
+You can retrive clinical data using the `clinic` function. The parameters of this
+function are: 
+
+* cancer ("OV","BRCA","GBM", etc)
+* clinical_data_type ("clinical_patient","clinical_drug", etc)
+
+A full list of cancer and clinical data type can be found in the help of the function.
+
+```{r, eval = FALSE}
+# Get clinical data
+clinical_brca_data <- TCGAquery_clinic("brca","clinical_patient")
+clinical_uvm_data_bio <- TCGAquery_clinic("uvm","biospecimen_normal_control")
+clinical_brca_data_bio <- TCGAquery_clinic("brca","biospecimen_normal_control")
+clinical_brca_data <- TCGAquery_clinic("brca","clinical_patient")
+```
+
+Also, some functions to work with clinical data are provided.
+For example the function `TCGAquery_clinicFilt` will filter your data, returning the list 
+of barcodes that matches all the filter.
+
+The parameters of `TCGAquery_clinicFilt` are:
+
+* **barcode** List of barcodes
+* **clinical_patient_data** clinical patient data obtained with clinic function 
+Ex: clinical_patient_data <- TCGAquery_clinic("LGG","clinical_patient")
+* **HER**  her2 neu immunohistochemistry receptor status: "Positive" or "Negative"
+* **gender** "MALE" or "FEMALE"
+* **PR**  Progesterone receptor status: "Positive" or "Negative"
+* **stage** Pathologic Stage: "stage_IX", "stage_I", "stage_IA", "stage_IB", "stage_IIX",
+ "stage_IIA", "stage_IIB", "stage_IIIX","stage_IIIA", "stage_IIIB",
+ "stage_IIIC", "stage_IV" -
+* **ER** Estrogen receptor status: "Positive" or "Negative"
+
+An example of the function is below:
+
+```{r, eval = FALSE}
+bar <- c("TCGA-G9-6378-02A-11R-1789-07", "TCGA-CH-5767-04A-11R-1789-07",  
+        "TCGA-G9-6332-60A-11R-1789-07", "TCGA-G9-6336-01A-11R-1789-07",
+        "TCGA-G9-6336-11A-11R-1789-07", "TCGA-G9-7336-11A-11R-1789-07",
+        "TCGA-G9-7336-04A-11R-1789-07", "TCGA-G9-7336-14A-11R-1789-07",
+        "TCGA-G9-7036-04A-11R-1789-07", "TCGA-G9-7036-02A-11R-1789-07",
+        "TCGA-G9-7036-11A-11R-1789-07", "TCGA-G9-7036-03A-11R-1789-07",
+        "TCGA-G9-7036-10A-11R-1789-07", "TCGA-BH-A1ES-10A-11R-1789-07",
+        "TCGA-BH-A1F0-10A-11R-1789-07", "TCGA-BH-A0BZ-02A-11R-1789-07",
+        "TCGA-B6-A0WY-04A-11R-1789-07", "TCGA-BH-A1FG-04A-11R-1789-08",
+        "TCGA-D8-A1JS-04A-11R-2089-08", "TCGA-AN-A0FN-11A-11R-8789-08",
+        "TCGA-AR-A2LQ-12A-11R-8799-08", "TCGA-AR-A2LH-03A-11R-1789-07",
+        "TCGA-BH-A1F8-04A-11R-5789-07", "TCGA-AR-A24T-04A-55R-1789-07",
+        "TCGA-AO-A0J5-05A-11R-1789-07", "TCGA-BH-A0B4-11A-12R-1789-07",
+        "TCGA-B6-A1KN-60A-13R-1789-07", "TCGA-AO-A0J5-01A-11R-1789-07",
+        "TCGA-AO-A0J5-01A-11R-1789-07", "TCGA-G9-6336-11A-11R-1789-07",
+        "TCGA-G9-6380-11A-11R-1789-07", "TCGA-G9-6380-01A-11R-1789-07",
+        "TCGA-G9-6340-01A-11R-1789-07","TCGA-G9-6340-11A-11R-1789-07")
+
+S <- TCGAquery_SampleTypes(bar,"TP")
+S2 <- TCGAquery_SampleTypes(bar,"NB")
+
+# Retrieve multiple tissue types  NOT FROM THE SAME PATIENTS
+SS <- TCGAquery_SampleTypes(bar,c("TP","NB"))
+
+# Retrieve multiple tissue types  FROM THE SAME PATIENTS
+SSS <- TCGAquery_MatchedCoupledSampleTypes(bar,c("NT","TP"))
+
+# Get clinical data
+clinical_brca_data <- TCGAquery_clinic("brca","clinical_patient")
+female_erpos_herpos <- TCGAquery_clinicFilt(bar,clinical_brca_data, 
+                                            HER="Positive", 
+                                            gender="FEMALE", 
+                                            ER="Positive")
+```
+
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+bar <- c("TCGA-G9-6378-02A-11R-1789-07", "TCGA-CH-5767-04A-11R-1789-07",  
+        "TCGA-G9-6332-60A-11R-1789-07", "TCGA-G9-6336-01A-11R-1789-07",
+        "TCGA-G9-6336-11A-11R-1789-07", "TCGA-G9-7336-11A-11R-1789-07",
+        "TCGA-G9-7336-04A-11R-1789-07", "TCGA-G9-7336-14A-11R-1789-07",
+        "TCGA-G9-7036-04A-11R-1789-07", "TCGA-G9-7036-02A-11R-1789-07",
+        "TCGA-G9-7036-11A-11R-1789-07", "TCGA-G9-7036-03A-11R-1789-07",
+        "TCGA-G9-7036-10A-11R-1789-07", "TCGA-BH-A1ES-10A-11R-1789-07",
+        "TCGA-BH-A1F0-10A-11R-1789-07", "TCGA-BH-A0BZ-02A-11R-1789-07",
+        "TCGA-D8-A1JS-04A-11R-2089-08", "TCGA-AN-A0FN-11A-11R-8789-08",
+        "TCGA-AR-A2LQ-12A-11R-8799-08", "TCGA-AR-A2LH-03A-11R-1789-07",
+        "TCGA-BH-A1F8-04A-11R-5789-07", "TCGA-AR-A24T-04A-55R-1789-07",
+        "TCGA-AO-A0J5-05A-11R-1789-07", "TCGA-BH-A0B4-11A-12R-1789-07",
+        "TCGA-B6-A1KN-60A-13R-1789-07", "TCGA-AO-A0J5-01A-11R-1789-07",
+        "TCGA-AO-A0J5-01A-11R-1789-07", "TCGA-G9-6336-11A-11R-1789-07",
+        "TCGA-G9-6380-11A-11R-1789-07", "TCGA-G9-6380-01A-11R-1789-07",
+        "TCGA-G9-6340-01A-11R-1789-07","TCGA-G9-6340-11A-11R-1789-07")
+female_erpos_herpos <- TCGAquery_clinicFilt(bar, 
+                                            clinBRCA, 
+                                            HER = "Positive", 
+                                            gender = "FEMALE", 
+                                            ER = "Positive")
+print(female_erpos_herpos)
+```
+
+## `TCGAquery_subtype`: Working with molecular subtypes data.
+
+The Cancer Genome Atlas (TCGA) Research Network has reported integrated genome-wide 
+studies of various diseases. We have added some of the subtypes defined by these
+report in our package. The LGG, GBM, STAD, BRCA, READ, COAD and LUAD  tumors 
+has data added. These subtypes will be automatically added in the summarizedExperiment
+object through TCGAprepare. But you can also use the `TCGAquery_subtype` function
+to retrive that information.
+
+```{r, eval = FALSE}
+# Check with subtypes from TCGAprepare and update examples
+GBM_path_subtypes <- TCGAquery_subtype(tumor = "gbm")
+
+LGG_path_subtypes <- TCGAquery_subtype(tumor = "lgg")
+
+LGG_clinic <- TCGAquery_clinic(cancer = "LGG", 
+                               clinical_data_type = "clinical_patient")
+```
+
+A subset of the lgg subytpe is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+knitr::kable(lgg.subtype[1:10,c(1,2,3,4)], digits = 2, 
+             caption = "Table common samples among platforms from TCGAquery",
+             row.names = TRUE)
+```
+
+## `TCGAquery_integrate`: Summary of the common numbers of patient samples in different platforms 
+
+Some times researches would like to use samples from different platforms 
+from the same patient. In order to help the user to have an overview of the number of
+samples in commun we created the function `TCGAquery_integrate` that will receive the 
+data frame returned from `TCGAquery` and produce a matrix n platforms x n platforms 
+with the values of samples in commum.
+
+Some search examples are shown below
+```{r, eval = FALSE,echo=TRUE,message=FALSE,warning=FALSE}
+query <- TCGAquery(tumor = "brca",level = 3)
+matSamples <- TCGAquery_integrate(query)
+matSamples[c(1,4,9),c(1,4,9)]
+```
+
+The result of the 3 platforms  of `TCGAquery_integrate` result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+query <- TCGAquery(tumor = "brca",level = 3)
+matSamples <- TCGAquery_integrate(query)
+knitr::kable(matSamples[c(1,4,9),c(1,4,9)], digits = 2, 
+             caption = "Table common samples among platforms from TCGAquery",
+             row.names = TRUE)
+```
+
+## `TCGAquery_investigate`: Find most studied TFs in pubmed 
+
+Find most studied TFs in pubmed related to a specific cancer, disease, or tissue
+ 
+```{r, eval = FALSE}
+# First perform DEGs with TCGAanalyze
+# See previous section 
+library(TCGAbiolinks)
+
+# Select only transcription factors (TFs) from DEGs
+TFs <- EAGenes[EAGenes$Family =="transcription regulator",]
+TFs_inDEGs <- intersect(TFs$Gene, dataDEGsFiltLevel$mRNA )
+dataDEGsFiltLevelTFs <- dataDEGsFiltLevel[TFs_inDEGs,]
+
+# Order table DEGs TFs according to Delta decrease
+dataDEGsFiltLevelTFs <- dataDEGsFiltLevelTFs[order(dataDEGsFiltLevelTFs$Delta,decreasing = TRUE),]
+
+# Find Pubmed of TF studied related to cancer
+tabDEGsTFPubmed <- TCGAquery_investigate("breast", dataDEGsFiltLevelTFs, topgenes = 10)
+                 
+```
+
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+library(TCGAbiolinks)
+library(stringr)
+tabDEGsTFPubmed$PMID <- str_sub(tabDEGsTFPubmed$PMID,0,30)
+knitr::kable(tabDEGsTFPubmed, digits = 2, caption = "Table with most studied TF in pubmed related to a specific cancer",row.names = FALSE)
+
+#LatexPrintTableforPresentation(Table = tabDEGsTFPubmed,rowsForPage = nrow(tabDEGsTFPubmed), TableTitle = "tabDEGsTFPubmed", LabelTitle = "tabDEGsTFPubmed", withrows = T)
+```
+
+## `TCGAquery_Social`: Searching questions,answers and literature
+The `TCGAquery_Social` function has two type of searches, one that searches for
+most downloaded packages in CRAN or BioConductor and one that searches the most related question in biostar. 
+
+### `TCGAquery_Social` with BioConductor
+Find most downloaded packages in CRAN or BioConductor
+ 
+```{r, eval = FALSE}
+library(TCGAbiolinks)
+
+# Define a list of package to find number of downloads
+listPackage <-c("limma","edgeR","survcomp")
+
+tabPackage <- TCGAquery_Social(siteToFind ="bioconductor.org",listPackage)
+
+
+# define a keyword to find in support.bioconductor.org returing a table with suggested packages
+tabPackageKey <- TCGAquery_Social(siteToFind ="support.bioconductor.org" ,KeyInfo = "tcga")
+```
+
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+library(TCGAbiolinks)
+listPackage <- c("limma","edgeR","survcomp")
+tabPackage <- TCGAquery_Social(siteToFind = "bioconductor.org", listPackage)
+
+knitr::kable(head(tabPackage), digits = 2, caption = "Table with number of downloads about a list of packages",row.names = FALSE)
+
+knitr::kable(tabPackage2[c(1,4,5,7),], digits = 2, caption = "Find most related question in support.bioconductor.org with keyword = tcga",row.names = FALSE)
+
+```
+
+### `TCGAquery_Social` with Biostar
+Find most related question in biostar.
+ 
+```{r, eval = FALSE}
+library(TCGAbiolinks)
+
+# Find most related question in biostar with TCGA
+tabPackage1 <- TCGAquery_Social(siteToFind ="biostars.org",KeyInfo = "TCGA")
+
+# Find most related question in biostar with package
+tabPackage2 <- TCGAquery_Social(siteToFind ="biostars.org",KeyInfo = "package")
+
+```
+
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+library(TCGAbiolinks)
+# Find most related question in biostar with TCGA
+#tabPackage <- TCGAquery_Social(siteToFind ="biostars.org",KeyInfo = "package")
+
+knitr::kable(head(tabPackage1), digits = 2, caption = "Find most related question in biostar with TCGA",row.names = FALSE)
+
+knitr::kable(tabPackage2[c(1,5,7),], digits = 2, caption = "Find most related question in biostar with package",row.names = FALSE)
+```
+
+# `TCGAdownload`: Downloading open-access data  
+You can easily download data using the `TCGAdownload` function.
+
+The arguments are:
+
+*  **data**	The `TCGAquery` output
+*  **path**	location to save the files. Default: "."
+*  **type**	Filter the files to download by type
+*  **samples**	List of samples to download
+*  **force**	Download again if file already exists? Default: FALSE
+
+### `TCGAdownload`: Example of use
+```{r, eval = FALSE}
+# get all samples from the query and save them in the TCGA folder
+# samples from IlluminaHiSeq_RNASeqV2 with type rsem.genes.results
+# samples to normalize later
+TCGAdownload(query, path = "data", type = "rsem.genes.results")
+
+TCGAdownload(query, path = "data", type = "rsem.isoforms.normalized_results")
+
+TCGAdownload(query, path = "dataBrca", type = "rsem.genes.results",
+             samples = c("TCGA-E9-A1NG-11A-52R-A14M-07",
+                         "TCGA-BH-A1FC-11A-32R-A13Q-07"))
+```
+
+Comment: The function will structure the folders to save the data as:
+_Path given by the user/Experiment folder_
+
+### `TCGAdownload`: Table of types available for downloading
+
+*  **RNASeqV2:** junction_quantification,rsem.genes.results,
+rsem.isoforms.results, rsem.genes.normalized_results, 
+rsem.isoforms.normalized_results, bt.exon_quantification
+*  **RNASeq:** exon.quantification,spljxn.quantification, gene.quantification
+*  **genome_wide_snp_6:** hg18.seg,hg19.seg,nocnv_hg18.seg,nocnv_hg19.seg
+
+# `TCGAprepare`: Preparing the data
+You can easily read the downloaded data using the `TCGAprepare` function.
+This function will prepare the data into a 
+[SummarizedExperiment](http://www.nature.com/nmeth/journal/v12/n2/abs/nmeth.3252.html) 
+[@ref1] object for downstream analysis. 
+For the moment this function is working only with data level 3.
+
+The arguments are:
+
+* **query**	Data frame as the one returned from TCGAquery
+* **dir**	Directory with the files
+* **type**	File to prepare.
+* **samples**	List of samples to prepare.
+* **save**	Save a rda object with the prepared object? Default: FALSE
+* **filename** Name of the rda object that will be saved if `save` is `TRUE`
+* **summarizedExperiment** Should the output be a SummarizedExperiment object? Default: `TRUE`
+* **reannotate** Reannotate genes? Source http://grch37.ensembl.org/. 
+Default: `FALSE`. (For the moment only working for methylation data)
+
+In order to add useful information to reasearches we added in the colData of the 
+summarizedExperiment the subtypes classification for the LGG and GBM samples 
+that can be found in the [TCGA publication section](https://tcga-data.nci.nih.gov/docs/publications/)
+We intend to add more tumor types in the future.
+
+Also in the  metadata of the objet we added the parameters used in TCGAprepare,
+the query matrix used for preparing, and file information (name,creation time and modification time)
+in order to help the user know which samples, versions, and parameters they used.
+
+### Example of use
+```{r, eval = FALSE}
+# get all samples from the query and save them in the TCGA folder
+# samples from IlluminaHiSeq_RNASeqV2 with type rsem.genes.results
+# samples to normalize later
+data <- TCGAprepare(query, dir = "data", save = TRUE, filename = "myfile.rda")
+```
+
+```{r,eval=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+library(TCGAbiolinks)
+library(SummarizedExperiment)
+query <- TCGAquery(tumor = "READ", platform = "IlluminaHiSeq_RNASeqV2", level = 3,
+                   samples = c("TCGA-DY-A1DE-01A-11R-A155-07",
+                             "TCGA-DY-A0XA-01A-11R-A155-07"))
+TCGAdownload(query,samples = c("TCGA-DY-A1DE-01A-11R-A155-07",
+                             "TCGA-DY-A0XA-01A-11R-A155-07"),
+             type = "rsem.genes.normalized_results",path = "../dataREAD")
+dataREAD <- TCGAprepare(query,dir = "../dataREAD", type = "rsem.genes.normalized_results",
+                        samples = c("TCGA-DY-A1DE-01A-11R-A155-07",
+                             "TCGA-DY-A0XA-01A-11R-A155-07"))
+```
+
+As an example, for the platform IlluminaHiSeq_RNASeqV2 we prepared two samples (TCGA-DY-A1DE-01A-11R-A155-07 and TCGA-DY-A0XA-01A-11R-A155-07) for the rsem.genes.normalized_results type. In order to create the object mapped the gene_id 
+to the hg19. The genes_id not found are then removed from the final matrix.
+The default output is a SummarizedExperiment is shown below. 
+
+```{r, eval = TRUE,message=FALSE,warning=FALSE}
+library(TCGAbiolinks)
+library(SummarizedExperiment)
+head(assay(dataREAD,"normalized_count"))
+```
+
+In order to create the SummarizedExperiment object we mapped the rows of the 
+experiments into GRanges. In order to map miRNA we used the miRNA from the anotation database TxDb.Hsapiens.UCSC.hg19.knownGene, this will exclude the miRNA from viruses and bacteria. 
+In order to map genes, genes alias, we used the biomart hg19 database 
+(hsapiens_gene_ensembl from grch37.ensembl.org).
+
+In case you prefere to have the raw data. You can get a data frame without any
+modification setting the `summarizedExperiment` to false.
+
+```{r,eval=FALSE,echo=FALSE,message=FALSE,warning=FALSE}
+library(SummarizedExperiment)
+library(TCGAbiolinks)
+query <- TCGAquery(tumor = "READ", platform = "IlluminaHiSeq_RNASeqV2", level = 3,
+                   samples = c("TCGA-DY-A1DE-01A-11R-A155-07",
+                             "TCGA-DY-A0XA-01A-11R-A155-07"))
+TCGAdownload(query,samples = c("TCGA-DY-A1DE-01A-11R-A155-07",
+                             "TCGA-DY-A0XA-01A-11R-A155-07"),
+             type = "rsem.genes.normalized_results",path = "../dataREAD")
+
+dataREAD_df <- TCGAprepare(query,dir = "../dataREAD", 
+                           type = "rsem.genes.normalized_results",
+                        samples = c("TCGA-DY-A1DE-01A-11R-A155-07",
+                             "TCGA-DY-A0XA-01A-11R-A155-07"),
+                        summarizedExperiment = FALSE)
+```
+
+```{r, eval = TRUE}
+library(TCGAbiolinks)
+class(dataREAD_df)
+dim(dataREAD_df)
+head(dataREAD_df)
+```
+
+### Example of use: Preparing the data with CNV data (Genome_Wide_SNP_6)
+
+You can easily search TCGA samples, download and prepare a matrix of gene expression.
+```{r, eval = FALSE}
+
+# Define a list of samples to query and download providing relative TCGA barcodes.
+samplesList <- c("TCGA-02-0046-10A-01D-0182-01", 
+                "TCGA-02-0052-01A-01D-0182-01", 
+                "TCGA-02-0033-10A-01D-0182-01", 
+                "TCGA-02-0034-01A-01D-0182-01", 
+                "TCGA-02-0007-01A-01D-0182-01")
+
+# Query platform Genome_Wide_SNP_6 with a list of barcode 
+query <- TCGAquery(tumor = "gbm", level = 3, platform = "Genome_Wide_SNP_6")
+
+# Download a list of barcodes with platform Genome_Wide_SNP_6
+TCGAdownload(query, path = "samples")
+
+# Prepare matrix 
+GBM_CNV <- TCGAprepare(query, dir = "samples", type = ".hg19.seg.txt")
+```
+
+### Table of `types` available for the `TCGAprepare`
+
+*  **RNASeqV2:** junction_quantification,rsem.genes.results,
+rsem.isoforms.results, rsem.genes.normalized_results, 
+rsem.isoforms.normalized_results, bt.exon_quantification
+*  **RNASeq:** exon.quantification,spljxn.quantification, gene.quantification
+*  **genome_wide_snp_6:** hg18.seg,hg19.seg,nocnv_hg18.seg,nocnv_hg19.seg
+
+## Preparing the data for other packages
+This section will show how to integrate `TCGAbiolinks` with other packages.
+Our intention is to provide as many integrations as possible.
+
+The example below shows how to use `TCGAbiolinks` with `ELMER` package 
+(expression/methylation analysis) [@ref4]. The `TCGAprepare_elmer` for the DNA methylation data 
+will Removing probes with NA values in more than 20% samples and remove the 
+anottation data, fot the expression data it will take the log2(expression + 1)
+of the expression matrix in order to To linearize the relation between 
+DNA methylation and expressionm also it will prepare the rownames as the 
+specified by the package.
+
+```{r, eval = FALSE}
+############## Get tumor samples with TCGAbiolinks
+library(TCGAbiolinks)
+path <- "kirc"
+query <- TCGAquery(tumor = "KIRC", level = 3, platform = "HumanMethylation450")
+TCGAdownload(query, path =path)
+
+kirc.met <- TCGAprepare(query,dir = path,
+                        save = TRUE,
+                        filename = "metKirc.rda",
+                        summarizedExperiment = FALSE)
+
+kirc.met <- TCGAprepare_elmer(kirc.met,
+                              platform = "HumanMethylation450",
+                              save = TRUE,
+                              met.na.cut = 0.2)
+
+# Step 1.2 download expression data
+query.rna <- TCGAquery(tumor="KIRC",level=3, platform="IlluminaHiSeq_RNASeqV2")
+TCGAdownload(query.rna,path=path,type = "rsem.genes.normalized_results")
+
+kirc.exp <- TCGAprepare(query.rna, dir=path, save = TRUE,
+                        type = "rsem.genes.normalized_results",
+                        filename = "expKirc.rda", summarizedExperiment = FALSE)
+
+kirc.exp <- TCGAprepare_elmer(kirc.exp,
+                              save = TRUE,
+                              platform = "IlluminaHiSeq_RNASeqV2")
+
+# Step 2 prepare mee object
+library(ELMER)
+library(parallel)
+
+geneAnnot <- txs()
+geneAnnot$GENEID <- paste0("ID",geneAnnot$GENEID)
+geneInfo <- promoters(geneAnnot,upstream = 0, downstream = 0)
+probe <- get.feature.probe()
+mee <- fetch.mee(meth = kirc.met, exp = kirc.exp, TCGA = TRUE,
+                 probeInfo = probe, geneInfo = geneInfo)
+save(mee,file="case4mee.rda")
+```
+
+# `TCGAanalyze`: Analyze data from TCGA. 
+You can easily analyze data using following functions:
+
+## `TCGAanalyze_Preprocessing` Preprocessing of Gene Expression data (IlluminaHiSeq_RNASeqV2).
+
+You can easily search TCGA samples, download and prepare a matrix of gene expression.
+```{r, eval = FALSE}
+
+# You can define a list of samples to query and download providing relative TCGA barcodes.
+
+listSamples <- c("TCGA-E9-A1NG-11A-52R-A14M-07","TCGA-BH-A1FC-11A-32R-A13Q-07",
+                "TCGA-A7-A13G-11A-51R-A13Q-07","TCGA-BH-A0DK-11A-13R-A089-07",
+                "TCGA-E9-A1RH-11A-34R-A169-07","TCGA-BH-A0AU-01A-11R-A12P-07",
+                "TCGA-C8-A1HJ-01A-11R-A13Q-07","TCGA-A7-A13D-01A-13R-A12P-07",
+                "TCGA-A2-A0CV-01A-31R-A115-07","TCGA-AQ-A0Y5-01A-11R-A14M-07")
+
+# Query platform IlluminaHiSeq_RNASeqV2 with a list of barcode 
+query <- TCGAquery(tumor = "brca", samples = listSamples, 
+  platform = "IlluminaHiSeq_RNASeqV2", level = "3")
+
+# Download a list of barcodes with platform IlluminaHiSeq_RNASeqV2
+TCGAdownload(query, path = "../dataBrca", type = "rsem.genes.results",samples = listSamples)
+
+# Prepare expression matrix with gene id in rows and samples (barcode) in columns
+# rsem.genes.results as values
+BRCARnaseq_assay <- TCGAprepare(query,"../dataBrca",type = "rsem.genes.results")
+
+BRCAMatrix <- assay(BRCARnaseq_assay,"raw_counts")
+
+# For gene expression if you need to see a boxplot correlation and AAIC plot 
+# to define outliers you can run
+BRCARnaseq_CorOutliers <- TCGAanalyze_Preprocessing(BRCARnaseq_assay)
+```
+
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE,size = 8}
+library(TCGAbiolinks)
+dataGE <- dataBRCA[sample(rownames(dataBRCA),10),sample(colnames(dataBRCA),7)]
+
+knitr::kable(dataGE[1:10,2:3], digits = 2, 
+            caption = "Example of a matrix of gene expression (10 genes in rows and 2 samples in columns)",
+            row.names = TRUE)
+```
+
+The result from TCGAanalyze_Preprocessing is shown below:
+```{r, fig.width=6, fig.height=4, echo=FALSE, fig.align="center"}
+library(png)
+library(grid)
+img <- readPNG("PreprocessingOutput.png")
+grid.raster(img)
+```
+
+## `TCGAanalyze_DEA` `&` `TCGAanalyze_LevelTab` Differential expression analysis (DEA)
+
+Perform DEA (Differential expression analysis) to identify differentially expressed genes (DEGs) using the `TCGAanalyze_DEA` function. 
+
+`TCGAanalyze_DEA` performs DEA using following functions from R \Biocpkg{edgeR}:
+
+1. edgeR::DGEList converts the count matrix into an edgeR object.
+2. edgeR::estimateCommonDisp each gene gets assigned the same dispersion estimate.
+3. edgeR::exactTest performs pair-wise tests for differential expression between two groups.
+4. edgeR::topTags takes the output from exactTest(), adjusts the raw p-values using the False Discovery Rate (FDR) correction, and returns the top differentially expressed genes.
+
+This function receives as parameters:
+
+* **mat1** The matrix of the first group (in the example group 1 is the normal samples), 
+* **mat2** The matrix of the  second group (in the example group 2 is tumor samples)
+* **Cond1type** Label for group 1
+* **Cond1type** Label for group 2
+
+After, we filter the output of dataDEGs by abs(LogFC) >=1, and uses the
+`TCGAanalyze_LevelTab` function to create a table with DEGs (differentially expressed genes), log Fold Change (FC), false discovery rate (FDR), the gene expression level for samples in Cond1type, and Cond2type, and Delta value (the difference of gene expression between the two conditions multiplied logFC).
+
+```{r, eval = TRUE}
+# Downstream analysis using gene expression data  
+# TCGA samples from IlluminaHiSeq_RNASeqV2 with type rsem.genes.results
+# save(dataBRCA, geneInfo , file = "dataGeneExpression.rda")
+library(TCGAbiolinks)
+
+# normalization of genes
+dataNorm <- TCGAanalyze_Normalization(tabDF = dataBRCA, geneInfo =  geneInfo)
+
+# quantile filter of genes
+dataFilt <- TCGAanalyze_Filtering(tabDF = dataNorm,
+                                  method = "quantile", 
+                                  qnt.cut =  0.25)
+
+# selection of normal samples "NT"
+samplesNT <- TCGAquery_SampleTypes(barcode = colnames(dataFilt),
+                                   typesample = c("NT"))
+
+# selection of tumor samples "TP"
+samplesTP <- TCGAquery_SampleTypes(barcode = colnames(dataFilt), 
+                                   typesample = c("TP"))
+
+# Diff.expr.analysis (DEA)
+dataDEGs <- TCGAanalyze_DEA(mat1 = dataFilt[,samplesNT],
+                            mat2 = dataFilt[,samplesTP],
+                            Cond1type = "Normal",
+                            Cond2type = "Tumor",
+                            fdr.cut = 0.01 ,
+                            logFC.cut = 1,
+                            method = "glmLRT")
+
+# DEGs table with expression values in normal and tumor samples
+dataDEGsFiltLevel <- TCGAanalyze_LevelTab(dataDEGs,"Tumor","Normal",
+                                dataFilt[,samplesTP],dataFilt[,samplesNT])
+
+```
+The result is shown below:
+
+```{r, eval = TRUE, echo = FALSE}
+library(TCGAbiolinks)
+dataDEGsFiltLevel$FDR <- format(dataDEGsFiltLevel$FDR, scientific = TRUE)
+knitr::kable(dataDEGsFiltLevel[1:10,], digits = 2,
+                caption = "Table DEGs after DEA",row.names = FALSE)
+```
+
+## `TCGAanalyze_EAcomplete & TCGAvisualize_EAbarplot`: Enrichment Analysis
+
+Researchers, in order to better understand the underlying biological processes, 
+often want to retrieve a functional profile of a set of genes that might 
+have an important role. This can be done by performing an enrichment analysis. 
+
+We will perform an enrichment analysis on gene sets using the `TCGAanalyze_EAcomplete` 
+function. 
+Given a set of genes that are up-regulated under certain conditions, 
+an enrichment analysis will find  identify classes of genes or proteins that 
+are over-represented  using annotations for that gene set.
+
+
+To view the results you can use the `TCGAvisualize_EAbarplot` function as shown below.
+
+```{r, eval = FALSE}
+library(TCGAbiolinks)
+# Enrichment Analysis EA
+# Gene Ontology (GO) and Pathway enrichment by DEGs list
+Genelist <- rownames(dataDEGsFiltLevel)
+
+system.time(ansEA <- TCGAanalyze_EAcomplete(TFname="DEA genes Normal Vs Tumor",Genelist))
+
+# Enrichment Analysis EA (TCGAVisualize)
+# Gene Ontology (GO) and Pathway enrichment barPlot
+
+TCGAvisualize_EAbarplot(tf = rownames(ansEA$ResBP), 
+            GOBPTab = ansEA$ResBP,
+            GOCCTab = ansEA$ResCC,
+            GOMFTab = ansEA$ResMF,
+            PathTab = ansEA$ResPat,
+            nRGTab = Genelist, 
+            nBar = 10)
+
+```
+The result is shown below:
+```{r, fig.width=6, fig.height=4, echo=FALSE, fig.align="center"}
+library(png)
+library(grid)
+img <- readPNG("EAplot.png")
+grid.raster(img)
+```
+
+## `TCGAanalyze_survival` Survival Analysis: Cox Regression and dnet package
+When analyzing survival times, different problems come up than the ones dis-
+cussed so far. One question is how do we deal with subjects dropping out of a
+study. For example, assume that we test a new cancer drug. While some subjects
+die, others may believe that the new drug is not effective, and decide to drop out
+of the study before the study is finished. A similar problem would be faced when
+we investigate how long a machine lasts before it breaks down.
+ 
+Using the clinical data, it is possible to create a survival plot with the 
+function `TCGAanalyze_survival` as follows:
+
+```{r, eval = FALSE}
+clin.gbm <- TCGAquery_clinic("gbm", "clinical_patient")
+clin.lgg <- TCGAquery_clinic("lgg", "clinical_patient")
+
+TCGAanalyze_survival(plyr::rbind.fill(clin.lgg,clin.gbm),
+                     "radiation_therapy",
+                     main = "TCGA Set\nLGG and GBM",height = 10, width=10)
+```
+
+The arguments of `TCGAanalyze_survival` are:
+
+*  **clinical_patient** TCGA Clinical patient with the information days_to_death
+*  **clusterCol** Column with groups to plot. This is a mandatory field, 
+the caption will be based in this column
+*  **legend** Legend title of the figure
+*  **cutoff** xlim This parameter will be a limit in the x-axis. 
+That means, that patients with days_to_deth > cutoff will be set to Alive.
+*  **main**	 main title of the plot
+*  **ylab**	y-axis text of the plot
+*  **xlab** x-axis text of the plot
+*  **filename**	 The name of the pdf file
+*  **color** Define the colors of the lines.
+
+ The result is shown below:
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("survival.png")
+grid.raster(img)
+```
+
+ 
+```{r, eval = FALSE}
+library(TCGAbiolinks)
+# Survival Analysis SA
+
+clinical_patient_Cancer <- TCGAquery_clinic("brca","clinical_patient")
+dataBRCAcomplete <- log2(BRCA_rnaseqv2)
+
+tokenStop<- 1
+
+tabSurvKMcomplete <- NULL
+
+for( i in 1: round(nrow(dataBRCAcomplete)/100)){
+message( paste( i, "of ", round(nrow(dataBRCAcomplete)/100)))
+tokenStart <- tokenStop
+tokenStop <-100*i
+tabSurvKM<-TCGAanalyze_SurvivalKM(clinical_patient_Cancer,
+                                dataBRCAcomplete,
+                                Genelist = rownames(dataBRCAcomplete)[tokenStart:tokenStop],
+                                Survresult = F,
+                                ThreshTop=0.67,
+                                ThreshDown=0.33)
+
+tabSurvKMcomplete <- rbind(tabSurvKMcomplete,tabSurvKM)
+}
+
+tabSurvKMcomplete <- tabSurvKMcomplete[tabSurvKMcomplete$pvalue < 0.01,]
+tabSurvKMcomplete <- tabSurvKMcomplete[!duplicated(tabSurvKMcomplete$mRNA),]
+rownames(tabSurvKMcomplete) <-tabSurvKMcomplete$mRNA
+tabSurvKMcomplete <- tabSurvKMcomplete[,-1]
+tabSurvKMcomplete <- tabSurvKMcomplete[order(tabSurvKMcomplete$pvalue, decreasing=F),]
+    
+tabSurvKMcompleteDEGs <- tabSurvKMcomplete[
+    rownames(tabSurvKMcomplete) %in% dataDEGsFiltLevel$mRNA,
+    ]
+```
+The result is shown below:
+```{r, fig.width=6, fig.height=4, echo=FALSE, fig.align="center"}
+tabSurvKMcompleteDEGs$pvalue <- format(tabSurvKMcompleteDEGs$pvalue, scientific = TRUE)
+knitr::kable(tabSurvKMcompleteDEGs[1:10,1:4], 
+            digits = 2,
+            caption = "Table KM-survival genes after SA",
+            row.names = TRUE)
+knitr::kable(tabSurvKMcompleteDEGs[1:10,5:7], 
+            digits = 2,
+            row.names = TRUE)
+```
+
+## `TCGAanalyze_DMR`: Differentially methylated regions Analysis
+
+We will search for differentially methylated CpG sites using the `TCGAanalyze_DMR`
+function. In order to find these regions we use the beta-values 
+(methylation values ranging from 0.0 to 1.0) to compare two groups. 
+
+Firstly, it calculates the difference between the mean DNA methylation of each group
+for each probes. 
+
+Secondly, it calculates the p-value using the wilcoxon test 
+adjusting by the Benjamini-Hochberg method. The default parameters was set to
+ require a minimum absolute beta-values difference of 0.2 and a p-value adjusted
+ of < 0.01. 
+
+After these analysis, we save a volcano plot (x-axis:diff mean methylation,
+y-axis: significance) that will help the user identify the differentially
+methylated CpG sites and return the object with the calculus in the rowRanges.
+
+The arguments of volcanoPlot are:
+
+* **data** SummarizedExperiment obtained from the TCGAPrepare
+* **groupCol**  Columns with the groups inside the SummarizedExperiment
+  object. (This will be obtained by the function colData(data))
+* **group1 ** In case our object has more than 2 groups, you should set
+ the name of the group
+* **group2 ** In case our object has more than 2 groups, you should set
+ the name of the group
+* **filename ** pdf filename. Default: volcano.pdf
+* **legend ** Legend title
+* **color **vector of colors to be used in graph
+* **title **main title. If not specified it will be
+ "Volcano plot (group1 vs group2)
+* **ylab **y axis text
+* **xlab **x axis text
+* **xlim **x limits to cut image
+* **ylim **y limits to cut image
+* **label **vector of labels to be used in the figure.
+ Example: c("Not Significant", "Hypermethylated in group1", 
+ "Hypomethylated in group1"))
+* **p.cut** p values threshold. *Default: 0.01*
+* **diffmean.cut** diffmean threshold. *Default: 0.2*
+* **adj.method** Adjusted method for the p-value calculation
+* **paired** Wilcoxon paired parameter. *Default: FALSE*
+* **overwrite** Overwrite the pvalues and diffmean values if already in the object
+for both groups? *Default: FALSE*
+* **save **save the object with the results?
+* **cores **use multiple cores for non-parametric test
+
+
+```{r, eval = FALSE}
+data <- TCGAanalyze_DMR(data, groupCol = "cluster.meth",subgroupCol = "disease",
+                              group.legend  = "Groups", subgroup.legend = "Tumor",
+                              print.pvalue = TRUE)
+```
+
+The output will be a plot such as the figure below. The green dots are the 
+probes that are hypomethylated in group 2 compared to group 1, 
+while the red dots are the hypermethylated probes in group 2 compared to group 1
+
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("figure5met.png")
+grid.raster(img)
+```
+
+
+Also, the `TCGAanalyze_DMR` 
+function will save the plot as pdf and return the same SummarizedExperiment
+that was given as input with the values of p-value,
+p-value adjusted, diffmean and the group it belongs in the graph 
+(non significant, hypomethylated, hypermethylated) in the rowRanges. 
+The collumns will be (where group1 and group2 are the names of the groups): 
+
+* diffmean.group1.group2 (mean.group2 - mean.group1) 
+* diffmean.group2.group1 (mean.group1 - mean.group2)
+* p.value.group1.group2
+* p.value.adj.group1.group2
+* status.group1.group2 (Status of probes in group2 in relation to group1) 
+* status.group2.group1 (Status of probes in group1 in relation to group2) 
+
+This values can be view/acessed using the `rowRanges` 
+acessesor (`rowRanges(data)`).
+
+**Observation:** Calling the same function again, with the same arguments 
+will only plot the results,  as it was already calculated. 
+With you want to have them recalculated, please set
+`overwrite` to `TRUE` or remove the calculated collumns.
+
+# `TCGAvisualize`: Visualize results from analysis functions with TCGA's data. 
+You can easily visualize results from soome following functions:
+
+## `TCGAvisualize_PCA`: Principal Component Analysis plot for differentially expressed genes
+
+In order to understand better our genes, we can perform a PCA to reduce the
+number of dimensions of our gene set. The function `TCGAvisualize_PCA` will plot
+the PCA for different groups.
+
+The parameters of this function are:
+
+* **dataFilt** The expression matrix after normalization and quantile filter
+* **dataDEGsFiltLevel** The TCGAanalyze_LevelTab output
+* **ntopgenes** number of DEGs genes to plot in PCA
+
+```{r, eval = FALSE}
+# normalization of genes
+dataNorm <- TCGAbiolinks::TCGAanalyze_Normalization(dataBRCA, geneInfo)
+
+# quantile filter of genes
+dataFilt <- TCGAanalyze_Filtering(tabDF = dataNorm,
+                                  method = "quantile", 
+                                  qnt.cut =  0.25)
+
+# Principal Component Analysis plot for ntop selected DEGs
+TCGAvisualize_PCA(dataFilt,dataDEGsFiltLevel, ntopgenes = 200)
+```
+
+The result is shown below:
+```{r, fig.width=6, fig.height=4, echo=FALSE, fig.align="center"}
+library(png)
+library(grid)
+img <- readPNG("PCAtop200DEGs.png")
+grid.raster(img)
+```
+
+## `TCGAvisualize_SurvivalCoxNET` Survival Analysis: Cox Regression and dnet package
+
+TCGAvisualize_SurvivalCoxNET can help an user to identify a group of survival genes that are significant from univariate Kaplan Meier Analysis and also for Cox Regression.
+It shows in the end a network build with community of genes with similar range of pvalues from
+Cox regression (same color) and that interaction among those genes is already validated in
+literatures using the STRING database (version 9.1).
+
+
+```{r, eval = FALSE}
+library(TCGAbiolinks)
+# Survival Analysis SA
+
+clinical_patient_Cancer <- TCGAquery_clinic("brca","clinical_patient")
+dataBRCAcomplete <- log2(BRCA_rnaseqv2)
+
+tokenStop<- 1
+
+tabSurvKMcomplete <- NULL
+
+for( i in 1: round(nrow(dataBRCAcomplete)/100)){
+message( paste( i, "of ", round(nrow(dataBRCAcomplete)/100)))
+tokenStart <- tokenStop
+tokenStop <-100*i
+tabSurvKM<-TCGAanalyze_SurvivalKM(clinical_patient_Cancer,
+                                dataBRCAcomplete,
+                                Genelist = rownames(dataBRCAcomplete)[tokenStart:tokenStop],
+                                Survresult = F,ThreshTop=0.67,ThreshDown=0.33)
+
+tabSurvKMcomplete <- rbind(tabSurvKMcomplete,tabSurvKM)
+}
+
+tabSurvKMcomplete <- tabSurvKMcomplete[tabSurvKMcomplete$pvalue < 0.01,]
+tabSurvKMcomplete <- tabSurvKMcomplete[!duplicated(tabSurvKMcomplete$mRNA),]
+rownames(tabSurvKMcomplete) <-tabSurvKMcomplete$mRNA
+tabSurvKMcomplete <- tabSurvKMcomplete[,-1]
+tabSurvKMcomplete <- tabSurvKMcomplete[order(tabSurvKMcomplete$pvalue, decreasing=F),]
+
+tabSurvKMcompleteDEGs <- tabSurvKMcomplete[rownames(tabSurvKMcomplete) %in% dataDEGsFiltLevel$mRNA,]
+
+tflist <- EAGenes[EAGenes$Family == "transcription regulator","Gene"]
+tabSurvKMcomplete_onlyTF <- tabSurvKMcomplete[rownames(tabSurvKMcomplete) %in% tflist,]
+
+TabCoxNet <- TCGAvisualize_SurvivalCoxNET(clinical_patient_Cancer,dataBRCAcomplete,
+                            Genelist = rownames(tabSurvKMcompleteDEGs),
+                            scoreConfidence = 700,titlePlot = "TCGAvisualize_SurvivalCoxNET Example")
+```
+In particular the survival analysis with kaplan meier and cox regression allow user to reduce the feature / number of genes significant for survival. And using 'dnet' pipeline with 'TCGAvisualize_SurvivalCoxNET' function the user can further filter those genes according some already validated interaction according STRING database.
+This is important because the user can have an idea about the biology inside the 
+survival discrimination and further investigate in a sub-group of genes that are working in as synergistic effect influencing the risk of survival.
+In the following picture the user can see some community of genes with same color and survival pvalues.
+
+The result is shown below:
+```{r, fig.width=6, fig.height=4, echo=FALSE, fig.align="center"}
+
+library(png)
+library(grid)
+img <- readPNG("SurvivalCoxNETOutput.png")
+grid.raster(img)
+```
+
+## `TCGAvisualize_meanMethylation`: Sample Mean DNA Methylation Analysis
+Using the data and calculating the mean DNA methylation per group, it is possible 
+to create a mean DNA methylation boxplot with the function `TCGAvisualize_meanMethylation`
+as follows:
+
+```{r, eval = FALSE}
+TCGAvisualize_meanMethylation(data,"group")
+```
+The arguments of `TCGAvisualize_meanMethylation` are:
+
+* **data** SummarizedExperiment object obtained from `TCGAPrepare`
+* **groupCol** Columns in colData(data) that defines the groups. If no
+ columns defined a columns called "Patients" will be used
+* **subgroupCol** Columns in colData(data) that defines the subgroups.
+* **shapes** Shape vector of the subgroups. It must have the size of the levels
+of the subgroups. Example: shapes = c(21,23) if for two levels
+* **filename** The name of the pdf that will be saved
+* **subgroup.legend** Name of the subgroup legend. **DEFAULT: subgroupCol**
+* **group.legend** Name of the group legend. **DEFAULT: groupCol**
+* **color** vector of colors to be used in graph
+* **title** main title in the plot
+* **ylab** y axis text in the plot
+* **print.pvalue** Print p-value for two groups in the plot
+* **xlab** x axis text in the plot
+* **labels** Labels of the groups
+
+The result is shown below:
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("meanmet.png")
+grid.raster(img)
+```
+
+## `TCGAvisualize_starburst`: Analyzing expression and methylation together 
+
+ The starburst plot is proposed to combine information from two volcano plots, 
+ and is applied for a study of DNA methylation and gene expression. In order to
+ reproduce this plot, we will use the `TCGAvisualize_starburst` function.
+ 
+The function creates Starburst plot for comparison of DNA methylation
+and gene expression. The log10 (FDR-corrected P value) is plotted for beta 
+value for DNA methylation (x axis) and gene expression (y axis) for each gene. 
+The black dashed line shows the FDR-adjusted P value of 0.01.
+
+The parameters of this function are:
+
+* **met** SummarizedExperiment with methylation data obtained from the 
+`TCGAprepare` and processed by `TCGAanalyze_DMR` function. 
+Expected colData columns: diffmean and p.value.adj 
+* **exp** Matrix with expression data obtained from the `TCGAanalyze_DEA` function. 
+Expected colData columns: logFC, FDR
+* **filename**  pdf filename
+* **legend**  legend title
+* **color**  vector of colors to be used in graph
+* **label**  vector of labels to be used in graph
+* **title**  main title
+* **ylab**  y axis text
+* **xlab**  x axis text
+* **xlim**  x limits to cut image
+* **ylim**  y limits to cut image
+* **p.cut**  p value cut-off
+* **group1**  The name of the group 1  Obs: Column p.value.adj.group1.group2 should exist
+* **group2**  The name of the group 2. Obs: Column p.value.adj.group1.group2 should exist
+* **exp.p.cut** expression p value cut-off
+* **met.p.cut**	methylation p value cut-off
+* **diffmean.cut**	If set, the probes with diffmean higher than methylation cut-off will be highlighted in the plot. And the data frame return will be subseted.
+* **logFC.cut** If set, the probes with expression fold change higher than methylation cut-off will be highlighted in the plot. And the data frame return will be subseted.
+
+
+```{r, eval = FALSE}
+starburst <- TCGAvisualize_starburst(coad.SummarizeExperiment, 
+                                     different.experssion.analysis.data,
+                                     group1 = "CIMP.H",
+                                     group2 = "CIMP.L",
+                                     met.p.cut = 10^-5, 
+                                     exp.p.cut=10^-5,
+                                     names = TRUE)
+```
+
+As result the function will a plot the figure below and return a matrix with 
+The Gene_symbol and it status in relation to expression(up regulated/down regulated) and 
+methylation (Hyper/Hypo methylated). The case study 3, shows the complete pipeline
+for creating this figure.
+
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("figure5star.png")
+grid.raster(img)
+```
+
+# TCGA Downstream Analysis: Case Studies
+
+### Introduction 
+
+This vignette shows a complete workflow of the TCGAbiolinks package. 
+The code is divided in 4 case study:
+
+* 1. Expression pipeline (BRCA)
+* 2. Expression pipeline (GBM)
+* 3. Methylation and methylation pipeline (COAD)
+* 4. Elmer pipeline (KIRC)
+
+## Parameters definition
+```{r,eval=FALSE,echo=TRUE,message=FALSE,warning=FALSE}
+PlatformCancer <- "IlluminaHiSeq_RNASeqV2"
+dataType <- "rsem.genes.results"
+pathGBM<- "../dataGBM"
+pathLGG <- "../dataLGG"
+
+library(BiocInstaller)
+useDevel()  # we need Devel for SummarizedExperiment package
+library(SummarizedExperiment)
+library(TCGAbiolinks)
+```
+
+## Case study n. 1: Pan Cancer downstream analysis BRCA
+
+```{r,eval=FALSE,echo=TRUE,message=FALSE,warning=FALSE}
+library(TCGAbiolinks)
+cancer <- "BRCA"
+PlatformCancer <- "IlluminaHiSeq_RNASeqV2"
+dataType <- "rsem.genes.results"
+pathCancer <- paste0("../data",cancer)
+
+# Result....Function.....parameters...p1...pn..................................time execution
+
+datQuery <- TCGAquery(tumor = cancer, platform = PlatformCancer, level = "3")  # time = 0.093s
+lsSample <- TCGAquery_samplesfilter(query = datQuery)
+dataSubt <- TCGAquery_subtype(tumor = cancer)
+dataSmTP <- TCGAquery_SampleTypes(barcode = lsSample$IlluminaHiSeq_RNASeqV2,
+                                  typesample = "TP")
+dataSmTN <- TCGAquery_SampleTypes(barcode = lsSample$IlluminaHiSeq_RNASeqV2,
+                                  typesample ="NT")
+dataClin <- TCGAquery_clinic(cancer = cancer,
+                             clinical_data_type = "clinical_patient")         # time = 2.606s
+
+            TCGAdownload(data = datQuery, path = pathCancer, type = dataType,
+                         samples =c(dataSmTP,dataSmTN))
+
+dataAssy <- TCGAprepare(query = datQuery, 
+                        dir = pathCancer, 
+                        type = dataType, 
+                        save = TRUE, 
+                        summarizedExperiment = TRUE, 
+                        samples = c(dataSmTP,dataSmTN),
+                        filename = paste0(cancer,"_",PlatformCancer,".rda"))  #time = 1178.353s
+
+dataPrep <- TCGAanalyze_Preprocessing(object = dataAssy,
+                                      cor.cut = 0.6,
+                                      path = pathCancer,
+                                      cancer = cancer )                      #time = 50.372s
+
+dataNorm <- TCGAanalyze_Normalization(tabDF = dataPrep,
+                                      geneInfo = geneInfo,
+                                      method = "gcContent")                # time = 407.991s
+
+dataFilt <- TCGAanalyze_Filtering(tabDF = dataNorm,
+                                  method = "quantile", 
+                                  qnt.cut =  0.25)                       # time = 0.833s
+
+dataDEGs <- TCGAanalyze_DEA(mat1 = dataFilt[,dataSmTN],
+                            mat2 = dataFilt[,dataSmTP],
+                            Cond1type = "Normal",
+                            Cond2type = "Tumor",
+                            fdr.cut = 0.01 ,
+                            logFC.cut = 1,
+                            method = "glmLRT")                          #time = 215.273s
+ 
+ansEA <- TCGAanalyze_EAcomplete(TFname="DEA genes Normal Vs Tumor",
+                                RegulonList = rownames(dataDEGs))    # time = 69.488s 
+
+TCGAvisualize_EAbarplot(tf = rownames(ansEA$ResBP),
+                        GOBPTab = ansEA$ResBP,
+                        GOCCTab = ansEA$ResCC,
+                        GOMFTab = ansEA$ResMF,
+                        PathTab = ansEA$ResPat,
+                        nRGTab = rownames(dataDEGs),
+                        nBar = 20)
+
+system.time(dataSurv<-TCGAanalyze_SurvivalKM(clinical_patient = dataClin,
+                                             dataGE = dataFilt,
+                                             Genelist = rownames(dataDEGs),
+                                             Survresult = FALSE,
+                                             ThreshTop = 0.67,
+                                             ThreshDown = 0.33,
+                                             p.cut = 0.05))               # time = 175.664s
+
+require(dnet)  # to change
+org.Hs.string <- dRDataLoader(RData = "org.Hs.string")
+
+TabCoxNet <- TCGAvisualize_SurvivalCoxNET(dataClin,
+                                          dataFilt, 
+                                          Genelist = rownames(dataSurv),
+                                          scoreConfidence = 700,
+                                          org.Hs.string = org.Hs.string,
+                                          titlePlot = "Case Study n.1 dnet")
+
+# Convert images from pdf to png.
+library(animation)
+ani.options(outdir = getwd())
+
+im.convert("TCGAvisualize_EAbarplot_Output.pdf", 
+           output = "case1_EA.png", 
+           extra.opts="-density 150")
+
+im.convert("SurvivalCoxNETOutput.pdf", 
+           output = "case1_dnet.png", 
+           extra.opts="-density 150")
+```
+
+The figures resulted from the code above are shown below.
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case1_EA.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case1_dnet.png")
+grid.raster(img)
+```
+
+## Case study n. 2: Pan Cancer downstream analysis LGG
+
+```{r,eval=FALSE,echo=TRUE,message=FALSE,warning=FALSE}
+library(TCGAbiolinks)
+cancer <- "LGG"
+PlatformCancer <- "IlluminaHiSeq_RNASeqV2"
+dataType <- "rsem.genes.results"
+pathCancer <- paste0("../data",cancer)
+
+# Result....Function.....parameters...p1...pn..................................time execution
+
+datQuery <- TCGAquery(tumor = cancer, platform = PlatformCancer, level = "3")  # time = 0.093s
+lsSample <- TCGAquery_samplesfilter(query = datQuery)
+dataSubt <- TCGAquery_subtype(tumor = cancer)
+dataSmTP <- TCGAquery_SampleTypes(barcode = lsSample$IlluminaHiSeq_RNASeqV2,
+                                  typesample = "TP")
+dataClin <- TCGAquery_clinic(cancer = cancer,
+                             clinical_data_type = "clinical_patient")
+
+            TCGAdownload(data = datQuery, path = pathCancer, type = dataType,
+                         samples = dataSmTP )
+
+dataAssy <- TCGAprepare(query = datQuery, 
+                        dir = pathCancer, 
+                        type = dataType, 
+                        save = TRUE, 
+                        summarizedExperiment = TRUE, 
+                        samples = dataSmTP,
+                        filename = paste0(cancer,"_",PlatformCancer,".rda"))
+
+dataPrep <- TCGAanalyze_Preprocessing(object = dataAssy,cor.cut = 0.6)        # time = 13.028s
+dataNorm <- TCGAanalyze_Normalization(tabDF = dataPrep,
+                                      geneInfo = geneInfo,
+                                      method = "gcContent")                  # time = 165.577s 
+
+datFilt1 <- TCGAanalyze_Filtering(tabDF = dataNorm,method = "varFilter")
+datFilt2 <- TCGAanalyze_Filtering(tabDF = datFilt1,method = "filter1")
+datFilt <- TCGAanalyze_Filtering(tabDF = datFilt2,method = "filter2")
+
+data_Hc1 <- TCGAanalyze_Clustering(tabDF = datFilt,method = "hclust", methodHC = "ward.D2")
+data_Hc2 <- TCGAanalyze_Clustering(tabDF = datFilt,
+                                   method = "consensus",
+                                   methodHC = "ward.D2")        # time = 207.389 
+# deciding number of tree to cuts
+cut.tree <-4
+paste0(c("EC"),(1:cut.tree))
+
+## consensusClusters contains barcodes for 4 groups
+ans <- hclust(ddist <- dist(datFilt), method = "ward.D2")
+hhc <- data_Hc2[[cut.tree]]$consensusTree
+consensusClusters<-data_Hc2[[cut.tree]]$consensusClass
+sampleOrder <- consensusClusters[hhc$order]
+
+consensusClusters <- as.factor(data_Hc2[[cut.tree]]$clrs[[1]])
+names(consensusClusters) <- attr(ddist, "Labels")
+names(consensusClusters) <- substr(names(consensusClusters),1,12)
+
+# adding information about gropus from consensus Cluster in clinical data
+dataClin <- cbind(dataClin, groupsHC = matrix(0,nrow(dataClin),1))
+rownames(dataClin) <- dataClin$bcr_patient_barcode
+
+for( i in 1: nrow(dataClin)){
+    currSmp <- dataClin$bcr_patient_barcode[i]
+    dataClin[currSmp,"groupsHC"] <- as.character(consensusClusters[currSmp])
+}
+
+# plotting survival for groups EC1, EC2, EC3, EC4
+
+TCGAanalyze_survival(data = dataClin,
+                     clusterCol = "groupsHC",
+                     main = "TCGA kaplan meier survival plot from consensus cluster",
+                     height = 10,
+                     width=10,
+                     legend = "RNA Group",
+                     labels=paste0(c("EC"),(1:cut.tree)),
+                     color = as.character(levels(consensusClusters)),
+                     filename = "case2_surv.png")
+dev.off()
+TCGAvisualize_BarPlot(DFfilt = datFilt,
+                      DFclin = dataClin,
+                      DFsubt = dataSubt,
+                      data_Hc2 = data_Hc2,
+                      Subtype = "IDH.1p19q.Subtype",
+                      cbPalette = c("cyan","tomato","gold"),
+                      filename = "case2_Idh.png",
+                      height = 10,
+                      width=10,
+                      dpi =300)
+
+TCGAvisualize_BarPlot(DFfilt = datFilt,
+                      DFclin = dataClin,
+                      DFsubt = dataSubt,
+                      data_Hc2 = data_Hc2,
+                      Subtype = "MethylationCluster",
+                      cbPalette = c("black","orchid3","palegreen4","sienna3", "steelblue4"),
+                      filename = "case2_Met.png",
+                      height = 10,
+                      width=10,
+                      dpi =300)
+
+TCGAvisualize_BarPlot(DFfilt = datFilt,
+                      DFclin = dataClin,
+                      DFsubt = dataSubt,
+                      data_Hc2 = data_Hc2,
+                      Subtype = "AGE",
+                      cbPalette = c("yellow2","yellow3","yellow4"),
+                      filename = "case2_Age.png",
+                      height = 10,
+                      width=10,
+                      dpi =300)
+
+dev.off()
+pdf(file="case2_Heatmap2.pdf")
+TCGAvisualize_Heatmap(DFfilt = datFilt,
+                      DFclin = dataClin,
+                      DFsubt = dataSubt,
+                      data_Hc2= data_Hc2)
+dev.off()
+
+
+# Convert images from pdf to png.
+library(animation)
+ani.options(outdir = getwd())
+
+im.convert("case2_Heatmap2.pdf", 
+           output = "case2_Heatmap2.png", 
+           extra.opts="-density 150")
+```
+
+The figures resulted from the code above are shown below.
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case2_surv.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case2_Idh.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case2_Met.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case2_Met.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case2_Age.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case2_Heatmap.png")
+grid.raster(img)
+```
+
+## Case study n. 3: Integration of methylation and expression for COAD
+
+In recent years, it was discovered that there is a relationship between 
+DNA methylation and gene expression and the study of this relationship 
+is often difficult to accomplish.
+
+This case study will show the steps to conduct a study of the relationship
+between the two types of data.
+
+First we downloaded COAD methylation data for HumanMethylation27k and HumanMethylation450k
+platforms, and COAD expression data for IlluminaGA_RNASeqV2. 
+
+TCGAbiolinks adds by default the classifications already published by researchers.
+We will use this classification to do our examples. 
+We selected the groups CIMP.L and CIMP.H to do a expression and DNA methylation comparison.
+
+Firstly, we do a DMR (different methylated region) analysis, which will give the 
+difference of DNA methylation for the probes of the groups and their significance value.
+The output can be seen by a volcano plot.
+
+Secondly, we do a DEA (differential expression analysis) which will give the fold change 
+of gene expression and their significance value.
+
+Finally, using both previous analysis we do a starburst plot to select the genes 
+that are Candidate Biologically Significant.
+
+Observation: over the time, the number of samples has increased and the clinical data updated.
+We used only the samples that had a classification in the examples.
+
+
+```{r,eval=FALSE,echo=TRUE,message=FALSE,warning=FALSE}
+#-----------------------------------
+# STEP 1: Search, download, prepare |
+#-----------------------------------
+# 1.1 - Methylation
+# ----------------------------------
+query.met <- TCGAquery(tumor = c("coad"),
+                       platform = c("HumanMethylation27",
+                                    "HumanMethylation450"),
+                       level = 3)
+
+TCGAdownload(query.met, path = "/dados/ibm/comparing/biolinks/coad/")
+
+coad.met <- TCGAprepare(query = query.met,
+                        dir = "/dados/ibm/comparing/biolinks/coad/",
+                        save = TRUE,
+                        filename = "metcoad.rda",
+                        reannotate = TRUE)
+
+#-----------------------------------
+# 1.2 - Expression
+# ----------------------------------
+
+coad.query.exp <- TCGAquery(tumor = "coad",
+                       platform = "IlluminaGA_RNASeqV2",
+                       level = 3)
+
+TCGAdownload(coad.query.exp,
+             path = "/dados/ibm/comparing/biolinks/RNA/",
+             type = "rsem.genes.results")
+
+coad.exp <- TCGAprepare(query = coad.query.exp,
+                        dir = "/dados/ibm/comparing/biolinks/RNA/",
+                        type = "rsem.genes.results",
+                        save = T,filename = "coadexp.rda")
+
+
+# removing the samples without classification
+coad.met <- subset(coad.met,select = !(colData(coad.met)$methylation_subtype %in% c(NA)))
+
+#--------------------------------------------
+# STEP 2: Analysis
+#--------------------------------------------
+# 2.1 - Mean methylation of samples
+# -------------------------------------------
+TCGAvisualize_meanMethylation(coad.met,
+                              groupCol = "methylation_subtype",
+                              subgroupCol = "hypermutated",
+                              group.legend  = "Groups",
+                              subgroup.legend = "hypermutated",
+                              filename = "coad_mean.png")
+
+#-------------------------------------------------
+# 2.2 - DMR - Methylation analysis - volcano plot
+# ------------------------------------------------
+coad.aux <- subset(coad.met, 
+                   select = colData(coad.met)$methylation_subtype %in% c("CIMP.L","CIMP.H"))
+
+
+# na.omit
+coad.aux <- subset(coad.aux,subset = (rowSums(is.na(assay(coad.aux))) == 0))
+
+# Volcano plot
+coad.aux <- TCGAanalyze_DMR(coad.aux, groupCol = "methylation_subtype",
+                            group1 = "CIMP.H",
+                            group2="CIMP.L",
+                            p.cut = 10^-5,
+                            diffmean.cut = 0.25,
+                            legend = "State",
+                            plot.filename = "coad_CIMPHvsCIMPL_metvolcano.png")
+
+save(coad.aux,file = "coad_pvalue.rda")
+
+#-------------------------------------------------
+# 2.3 - DEA - Expression analysis - volcano plot
+# ------------------------------------------------
+
+coad.exp.aux <- subset(coad.exp, 
+                       select = colData(coad.exp)$methylation_subtype %in% c("CIMP.H","CIMP.L"))
+
+idx <- colData(coad.exp.aux)$methylation_subtype %in% c("CIMP.H")
+idx2 <- colData(coad.exp.aux)$methylation_subtype %in% c("CIMP.L")
+
+dataPrep <- TCGAanalyze_Preprocessing(object = coad.exp.aux,
+                                      cor.cut = 0.6,
+                                      cancer = "coad",
+                                      path=".")
+
+dataNorm <- TCGAanalyze_Normalization(tabDF = dataPrep,
+                                      geneInfo = geneInfo,
+                                      method = "gcContent")
+
+dataFilt <- TCGAanalyze_Filtering(tabDF = dataNorm,
+                                  qnt.cut = 0.25,
+                                  method='quantile')
+
+dataDEGs <- TCGAanalyze_DEA(mat1 = dataFilt[,idx],
+                            mat2 = dataFilt[,idx2],
+                            Cond1type = "CIMP.H",
+                            Cond2type = "CIMP.l",
+                            method = "glmLRT")
+
+TCGAVisualize_volcano(dataDEGs$logFC,dataDEGs$FDR,
+                      filename = "Case3_volcanoexp.png",
+                      x.cut = 3,
+                      y.cut = 10^-4,
+                      names = rownames(dataDEGs),
+                      xlab = " Gene expression fold change (Log2)",
+                      legend = "State",
+                      title = "Volcano plot (CIMP.l vs CIMP.H)")
+
+#------------------------------------------
+# 2.4 - Starburst plot
+# -----------------------------------------
+starburst <- TCGAvisualize_starburst(coad.aux, dataDEGs,"CIMP.H","CIMP.L",
+                                     filename = "starburst.png",
+                                     met.p.cut = 10^-5,
+                                     exp.p.cut = 10^-4,
+                                     diffmean.cut = 0.25,
+                                     logFC.cut = 3,
+                                     names = TRUE)
+```
+
+The figures resulted from the code above are shown below.
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("figure5exp.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("figure5met.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("figure5star.png")
+grid.raster(img)
+```
+
+## Case study n. 4: Elmer pipeline - KIRC
+
+One of the biggest problems related to the study data is the preparation phase,
+which often consists of successive 
+steps in order to prepare it to a format acceptable by certain algorithms and software.
+
+With the object of assisting users in this arduous step, TCGAbiolinks offers in 
+data preparation stage, the toPackage argument, which aims to prepare the data 
+in order to obtain the correct format for different packages.
+
+An example of package to perform DNA methylation and expression analysis is ELMER [@ref1]. 
+We will present this
+case study the study KIRC by TCGAbiolinks and ELMER integration. For more information,
+please consult ELMER package.
+
+```{r,eval=FALSE,echo=TRUE,message=FALSE,warning=FALSE}
+#-----------------------------------
+# STEP 1: Search, download, prepare |
+#-----------------------------------
+# Step 1.1 download methylation data|
+# -----------------------------------
+path <-  "."
+query <- TCGAquery(tumor = "KIRC",level = 3, platform = "HumanMethylation450")
+TCGAdownload(query, path = path)
+kirc.met <- TCGAprepare(query,dir = path,
+                        save = TRUE,
+                        filename = "metKirc.rda",
+                        summarizedExperiment = FALSE)
+
+kirc.met <- TCGAprepare_elmer(kirc.met,
+                              platform = "HumanMethylation450",
+                              save = TRUE,
+                              met.na.cut = 0.2)
+
+# Step 1.2 download expression data
+query.rna <- TCGAquery(tumor="KIRC",level=3, platform="IlluminaHiSeq_RNASeqV2")
+TCGAdownload(query.rna,path=path,type = "rsem.genes.normalized_results")
+kirc.exp <- TCGAprepare(query.rna, dir=path, save = TRUE,
+                        type = "rsem.genes.normalized_results",
+                        filename = "expKirc.rda", summarizedExperiment = FALSE)
+
+kirc.exp <- TCGAprepare_elmer(kirc.exp,
+                              save = TRUE,
+                              platform = "IlluminaHiSeq_RNASeqV2")
+#-----------------------------------
+# STEP 2: ELMER integration         |
+#-----------------------------------
+# Step 2.1 prepare mee object       |
+# -----------------------------------
+library(ELMER)
+library(parallel)
+
+geneAnnot <- txs()
+geneAnnot$GENEID <- paste0("ID",geneAnnot$GENEID)
+geneInfo <- promoters(geneAnnot,upstream = 0, downstream = 0)
+probe <- get.feature.probe()
+mee <- fetch.mee(meth = kirc.met, exp = kirc.exp, TCGA = TRUE,
+                 probeInfo = probe, geneInfo = geneInfo)
+
+#--------------------------------------
+# STEP 3: Analysis                     |
+#--------------------------------------
+# Step 3.1: Get diff methylated probes |
+#--------------------------------------
+Sig.probes <- get.diff.meth(mee ,cores=detectCores(),
+                            dir.out ="kirc",diff.dir="hypo",
+                            pvalue = 0.01)
+
+#--------------------------------------------------
+# Step 3.2: Identifying putative probe-gene pairs |
+#--------------------------------------------------
+# Collect nearby 20 genes for Sig.probes
+nearGenes <- GetNearGenes(TRange=getProbeInfo(mee, probe=Sig.probes),
+                          cores=detectCores(),
+                          geneAnnot=getGeneInfo(mee))
+
+# Identify significant probe-gene pairs
+Hypo.pair <- get.pair(mee=mee,
+                      probes=Sig.probes,
+                      nearGenes=nearGenes,
+                      permu.dir="./kirc/permu",
+                      dir.out="./kirc/",
+                      cores=detectCores(),
+                      label= "hypo",
+                      permu.size=10000,
+                      Pe = 0.001)
+
+Sig.probes.paired <- fetch.pair(pair=Hypo.pair,
+                                probeInfo = getProbeInfo(mee),
+                                geneInfo = getGeneInfo(mee))
+
+#-------------------------------------------------------------
+# Step 3.3: Motif enrichment analysis on the selected probes |
+#-------------------------------------------------------------
+enriched.motif <- get.enriched.motif(probes=Sig.probes.paired,
+                                     dir.out="kirc", label="hypo",
+                                     background.probes = probe$name)
+
+#-------------------------------------------------------------
+# Step 3.4: Identifying regulatory TFs                        |
+#-------------------------------------------------------------
+TF <- get.TFs(mee=mee,
+              enriched.motif=enriched.motif,
+              dir.out="kirc",
+              cores=detectCores(), label= "hypo")
+
+```
+
+From this analysis it is possible to verify the relation between a probe 
+and nearby genes. The result of this is show by the ELMER scatter plot.
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("case4_elmer.png")
+grid.raster(img)
+```
+
+Each scatter plot showing the average methylation level of sites with the AP1 motif in all KIRC samples plotted against the expression of the transcription factor CEBPB and GFI1 respectively.
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("elmer1.png")
+grid.raster(img)
+```
+
+The schematic plot shows probe colored in blue and the location of nearby 20 genes, The genes significantly linked to the probe were shown in red.
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("elmer2.png")
+grid.raster(img)
+```
+
+The plot shows the odds ratio (x axis) for the selected motifs with OR above 1.3 and lower boundary of OR above 1.3. The range shows the 95% confidence interval for each Odds Ratio.
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("elmer3.png")
+grid.raster(img)
+```
+
+```{r, fig.width=6, fig.height=4, echo = FALSE, fig.align="center",hide=TRUE, message=FALSE,warning=FALSE}
+library(png)
+library(grid)
+img <- readPNG("elmer4.png")
+grid.raster(img)
+```
+
+
+******
+
+### Session Information
+******
+```{r sessionInfo}
+sessionInfo()
+```
+
+# References
